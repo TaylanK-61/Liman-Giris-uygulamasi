@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liman Kapı Giriş & Fatura Portal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 min-h-screen pb-20 text-slate-800">
+
+  <header class="bg-blue-600 text-white p-5 rounded-b-3xl shadow-lg">
+    <div class="max-w-md mx-auto flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <div class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl font-bold">
+          <i class="fa-solid fa-anchor"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold leading-tight">Liman Kapı Giriş</h1>
+          <div class="flex items-center space-x-2 text-xs text-blue-100 mt-1">
+            <span id="rolBadge" class="bg-blue-800 text-blue-200 px-2 py-0.5 rounded font-semibold uppercase">MÜŞTERİ MODU</span>
+            <span id="aktifFirmaAdi" class="font-medium truncate max-w-[120px]">FİRMA GİRİŞİ</span>
+          </div>
+        </div>
+      </div>
+      <button onclick="firmaDegistir()" class="bg-white/20 hover:bg-white/30 text-xs px-3 py-2 rounded-xl backdrop-blur-sm transition font-medium">
+        <i class="fa-solid fa-user-gear"></i> Rol / Profil
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto px-4 mt-4 space-y-4">
+    <div class="grid grid-cols-3 gap-3">
+      <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200/60 text-center">
+        <span class="text-[10px] text-slate-400 font-bold uppercase block">TOPLAM USD</span>
+        <span id="toplamUsdOzet" class="text-base font-extrabold text-blue-600">$0,00</span>
+      </div>
+      <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200/60 text-center">
+        <span class="text-[10px] text-slate-400 font-bold uppercase block">TOPLAM TL</span>
+        <span id="toplamTlOzet" class="text-base font-extrabold text-emerald-600">₺0,00</span>
+      </div>
+      <div class="bg-white p-3 rounded-2xl shadow-sm border border-slate-200/60 text-center">
+        <span class="text-[10px] text-slate-400 font-bold uppercase block">BEKLEYEN</span>
+        <span id="bekleyenOzet" class="text-base font-extrabold text-amber-500">0</span>
+      </div>
+    </div>
+
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
+          <i class="fa-solid fa-pen-to-square text-blue-600"></i> Yeni Giriş Talebi
+        </h2>
+      </div>
+
+      <form id="kapiForm" onsubmit="event.preventDefault(); kayitEkle();" class="space-y-3.5">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tarih</label>
+            <input type="date" id="tarihInput" onchange="kuruGuncelle()" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-2.5 outline-none">
+          </div>
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-semibold text-slate-600">TCMB Kur (USD)</label>
+              <button type="button" onclick="kuruGuncelle()" class="text-[10px] text-blue-600 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-rotate"></i> Yenile
+              </button>
+            </div>
+            <input type="text" id="kurInput" placeholder="00,0000" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-2.5 font-semibold outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Fatura Edilecek Firma *</label>
+          <input type="text" id="firmaInput" placeholder="Firma Adı" required class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl p-2.5 outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Firma Kodu</label>
+            <input type="text" id="firmaKoduInput" placeholder="Kod" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-2.5 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Fatura No</label>
+            <input type="text" id="faturaNoInput" placeholder="Fatura No" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-2.5 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Açıklama 1</label>
+            <input type="text" id="aciklama1Input" placeholder="Plaka / Mal" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-2.5 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Açıklama 2</label>
+            <input type="text" id="aciklama2Input" placeholder="Şoför / Not" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-2.5 outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tutar (USD) *</label>
+            <input type="number" step="0.01" id="usdInput" placeholder="0.00" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-bold rounded-xl p-2.5 outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Durum</label>
+            <select id="durumSelect" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl p-2.5 outline-none font-medium">
+              <option value="Bekliyor">Bekliyor</option>
+              <option value="Faturalandı">Faturalandı</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition text-sm">
+          Kaydet ve Geçiş Talebi Oluştur
+        </button>
+      </form>
+    </div>
+
+    <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 space-y-3">
+      <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+        <i class="fa-solid fa-list-check text-blue-600"></i> Giriş Kayıtları
+      </h3>
+      <div id="kayitlarContainer" class="space-y-2.5">
+        <p class="text-center text-slate-400 text-xs py-4">Henüz kayıt bulunmamaktadır.</p>
+      </div>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
