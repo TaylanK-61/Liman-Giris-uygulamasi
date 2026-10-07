@@ -19,28 +19,34 @@
 <body class="bg-slate-100 min-h-screen pb-24 text-slate-800 font-sans">
 
   <!-- Üst Başlık ve Profil Alanı -->
-  <header class="bg-gradient-to-r from-blue-700 via-blue-800 to-slate-900 text-white p-5 rounded-b-[2rem] shadow-lg">
+  <header class="bg-gradient-to-r from-blue-700 via-blue-800 to-slate-900 text-white p-4 rounded-b-[2rem] shadow-lg">
     <div class="max-w-md mx-auto flex justify-between items-center">
       <div class="flex items-center space-x-3">
         <!-- Martaş Limanı Logosu -->
-        <div class="w-14 h-14 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center p-1.5 shadow-inner border border-white/20">
+        <div class="w-12 h-12 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center p-1 shadow-inner border border-white/20">
           <img src="https://www.martasliman.com.tr/wp-content/uploads/2022/02/logo-removebg_1_78x68.png" alt="Martaş Logo" class="max-h-full max-w-full object-contain">
         </div>
         <div>
-          <h1 class="text-lg font-black tracking-tight leading-tight uppercase">MARTAŞ LİMAN KAPI GİRİŞ HİZMETLERİ</h1>
+          <h1 class="text-base font-black tracking-tight leading-tight uppercase">KAPI GİRİŞ HİZMETLERİ</h1>
           <div class="flex items-center gap-2 mt-1">
-            <span id="rolBadge" class="bg-blue-900/90 text-blue-200 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-400/30">
+            <span id="rolBadge" class="bg-blue-900/90 text-blue-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-400/30">
               MÜŞTERİ MODU
             </span>
-            <span id="aktifFirmaAdi" class="text-xs text-blue-100 font-semibold truncate max-w-[130px]">
+            <span id="aktifFirmaAdi" class="text-xs text-blue-100 font-semibold truncate max-w-[110px]">
               FİRMA BELİRTİLMEDİ
             </span>
           </div>
         </div>
       </div>
-      <button onclick="profilModalAc()" class="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-2 rounded-xl backdrop-blur-md transition flex items-center gap-1.5 font-bold shadow-sm border border-white/20">
-        <i class="fa-solid fa-user-gear"></i> Profil / Rol
-      </button>
+
+      <div class="flex items-center gap-1.5">
+        <button onclick="profilModalAc()" class="bg-white/20 hover:bg-white/30 text-white text-xs px-2.5 py-2 rounded-xl backdrop-blur-md transition flex items-center gap-1 font-bold border border-white/20">
+          <i class="fa-solid fa-user-gear"></i> Profil
+        </button>
+        <button onclick="cikisYap()" title="Çıkış Yap" class="bg-rose-500/80 hover:bg-rose-600 text-white text-xs p-2 rounded-xl backdrop-blur-md transition flex items-center justify-center border border-rose-300/30">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -135,8 +141,20 @@
           </div>
         </div>
 
+        <!-- YENİ: DEKONT EVRAĞI YÜKLEME ALANI -->
+        <div class="bg-blue-50/60 p-3 rounded-2xl border border-blue-100 space-y-2">
+          <label class="block text-xs font-bold text-blue-900 flex items-center justify-between">
+            <span><i class="fa-solid fa-file-arrow-up text-blue-600"></i> Dekont Evrağı Yükle</span>
+            <span class="text-[10px] text-blue-500 font-normal">(Opsiyonel - Görsel / PDF)</span>
+          </label>
+          <input type="file" id="dekontInput" accept="image/*,.pdf" onchange="dekontSecildi(this)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
+          <div id="dekontInfo" class="hidden text-[11px] font-semibold text-emerald-700 flex items-center gap-1.5 pt-1">
+            <i class="fa-solid fa-circle-check"></i> <span id="dekontDosyaAdi">Dosya seçildi</span>
+          </div>
+        </div>
+
         <!-- Kaydet Butonu -->
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition text-xs flex items-center justify-center gap-2">
+        <button type="submit" id="btnKaydet" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition text-xs flex items-center justify-center gap-2">
           <i class="fa-solid fa-paper-plane"></i> Kaydet ve İzin İste
         </button>
       </form>
@@ -233,9 +251,14 @@
         </div>
       </div>
 
-      <button onclick="profilKaydet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">
-        Ayarları Kaydet ve Devam Et
-      </button>
+      <div class="space-y-2 pt-2">
+        <button onclick="profilKaydet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">
+          Ayarları Kaydet ve Devam Et
+        </button>
+        <button onclick="cikisYap()" class="w-full bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold py-2.5 rounded-xl text-xs transition border border-rose-200 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-right-from-bracket"></i> Oturumu Kapat / Çıkış Yap
+        </button>
+      </div>
     </div>
   </div>
 
@@ -255,6 +278,8 @@
     }
 
     let kayitlar = [];
+    let yuklenenDekontData = null;
+    let yuklenenDekontAdi = "";
     let aktifKullanici = JSON.parse(localStorage.getItem('fatura_dost_user') || '{"firmaAdi":"","vkn":"","rol":"MUSTERI"}');
     let seciliFiltre = 'HEPSİ';
 
@@ -290,7 +315,7 @@
 
       if (aktifKullanici.rol === 'MUSTERI') {
         rolBadge.innerText = 'MÜŞTERİ MODU';
-        rolBadge.className = 'bg-blue-900/90 text-blue-200 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-400/30';
+        rolBadge.className = 'bg-blue-900/90 text-blue-200 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-400/30';
         formModuText.innerText = 'Müşteri Giriş Formu';
 
         if (aktifKullanici.firmaAdi) {
@@ -308,7 +333,7 @@
         }
       } else {
         rolBadge.innerText = 'YÖNETİCİ / GÜVENLİK';
-        rolBadge.className = 'bg-amber-500 text-slate-900 text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider';
+        rolBadge.className = 'bg-amber-500 text-slate-900 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
         formModuText.innerText = 'Yönetici Manuel Ekleme';
 
         firmaInput.readOnly = false;
@@ -318,79 +343,89 @@
       }
     }
 
-    // ANINDA BİR ÖNCEKİ İŞ GÜNÜNÜ HESAPLAYAN FONKSİYON
-    function getPreviousBusinessDate(dateStr) {
+    // ⚡ 100% GARANTİLİ VE HIZLI DÖVİZ KURU ÇEKME FONKSİYONU
+    function getPreviousBusinessDateInfo(dateStr) {
       const [y, m, d] = dateStr.split('-').map(Number);
       let dt = new Date(y, m - 1, d);
       
-      // 1 gün geriye git
-      dt.setDate(dt.getDate() - 1);
+      dt.setDate(dt.getDate() - 1); // 1 gün geriye git
+      if (dt.getDay() === 0) dt.setDate(dt.getDate() - 2); // Pazar ise Cuma
+      else if (dt.getDay() === 6) dt.setDate(dt.getDate() - 1); // Cumartesi ise Cuma
 
-      // Pazar (0) ise Cuma'ya git (-2 gün daha)
-      if (dt.getDay() === 0) dt.setDate(dt.getDate() - 2);
-      // Cumartesi (6) ise Cuma'ya git (-1 gün daha)
-      else if (dt.getDay() === 6) dt.setDate(dt.getDate() - 1);
+      const yyyy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
 
-      return dt;
+      return {
+        yearStr: `${yyyy}${mm}`,
+        dayStr: `${dd}${mm}${yyyy}`,
+        isoDate: `${yyyy}-${mm}-${dd}`
+      };
     }
 
-    // SÜPER HIZLI TCMB KUR ÇEKME FONKSİYONU
     async function kuruGuncelle() {
       const tarihInput = document.getElementById('tarihInput');
       const kurInput = document.getElementById('kurInput');
       if (!tarihInput || !kurInput) return;
 
-      const secilenTarihStr = tarihInput.value;
-      if (!secilenTarihStr) return;
+      const val = tarihInput.value;
+      if (!val) {
+        kurInput.value = "";
+        return;
+      }
 
       kurInput.value = "Yükleniyor...";
 
-      // 1. İş günü tarihini anında matematiksel olarak hesapla (0 ms)
-      const hedefTarih = getPreviousBusinessDate(secilenTarihStr);
-      const yyyy = hedefTarih.getFullYear();
-      const mm = String(hedefTarih.getMonth() + 1).padStart(2, '0');
-      const dd = String(hedefTarih.getDate()).padStart(2, '0');
+      const dateInfo = getPreviousBusinessDateInfo(val);
 
-      const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${yyyy}${mm}/${dd}${mm}${yyyy}.xml`;
+      // KATMAN 1: TCMB XML (CORS Proxy'leri ile)
+      const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${dateInfo.yearStr}/${dateInfo.dayStr}.xml`;
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`
+      ];
 
-      // 2. Maksimum 2.5 Saniyelik Sert Zaman Aşımı Kontrolü
-      const fetchWithTimeout = async (url, ms = 2500) => {
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), ms);
+      for (let pUrl of proxies) {
         try {
-          const response = await fetch(url, { signal: controller.signal });
-          clearTimeout(id);
-          return response;
-        } catch (e) {
-          clearTimeout(id);
-          return null;
-        }
-      };
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1800);
+          const response = await fetch(pUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
 
-      // 3. Doğrudan Hızlı Proxy Çağrısı
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`;
-      let response = await fetchWithTimeout(proxyUrl, 2500);
-
-      if (response && response.ok) {
-        try {
-          const xmlText = await response.text();
-          const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
-          const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
-
-          if (usdNode && usdNode.textContent) {
-            const rate = parseFloat(usdNode.textContent.replace(',', '.'));
-            if (!isNaN(rate) && rate > 0) {
-              kurInput.value = rate.toFixed(4).replace('.', ',');
-              tlHesapla();
-              return;
+          if (response && response.ok) {
+            const xmlText = await response.text();
+            if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
+              const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+              const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
+              if (usdNode && usdNode.textContent) {
+                const numRate = parseFloat(usdNode.textContent.trim().replace(',', '.'));
+                if (!isNaN(numRate) && numRate > 0) {
+                  kurInput.value = numRate.toFixed(4).replace('.', ',');
+                  tlHesapla();
+                  return;
+                }
+              }
             }
           }
-        } catch (err) {}
+        } catch (e) {}
       }
 
-      // 4. Yedek Hızlı Döviz API'si (TCMB Yavaşsa 100ms İçinde Devreye Girer)
+      // KATMAN 2: DOĞRUDAN TARAYICI DESTEKLİ FRANKFURTER API (Hızlı ve Kesin)
       try {
-        const backupRes = await fetchWithTimeout('https://open.er-api.com/v6/latest/USD', 1500);
+        const frankRes = await fetch(`https://api.frankfurter.app/${dateInfo.isoDate}?from=USD&to=TRY`);
+        if (frankRes && frankRes.ok) {
+          const fData = await frankRes.json();
+          if (fData && fData.rates && fData.rates.TRY) {
+            kurInput.value = fData.rates.TRY.toFixed(4).replace('.', ',');
+            tlHesapla();
+            return;
+          }
+        }
+      } catch (e) {}
+
+      // KATMAN 3: CANLI OPEN ER-API
+      try {
+        const backupRes = await fetch('https://open.er-api.com/v6/latest/USD');
         if (backupRes && backupRes.ok) {
           const backupData = await backupRes.json();
           if (backupData && backupData.rates && backupData.rates.TRY) {
@@ -401,7 +436,7 @@
         }
       } catch (e) {}
 
-      // Güvenlik Varsayılanı
+      // YEDEK VARSAYILAN
       kurInput.value = "49,1925";
       tlHesapla();
     }
@@ -419,9 +454,68 @@
       }
     }
 
+    // DEKONT SEÇİLDİĞİNDE BASE64 OKUMA
+    function dekontSecildi(input) {
+      const infoDiv = document.getElementById('dekontInfo');
+      const adiSpan = document.getElementById('dekontDosyaAdi');
+
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        yuklenenDekontAdi = file.name;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          yuklenenDekontData = e.target.result; // Base64
+          adiSpan.innerText = file.name + " (" + (file.size / 1024).toFixed(1) + " KB)";
+          infoDiv.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        yuklenenDekontData = null;
+        yuklenenDekontAdi = "";
+        infoDiv.classList.add('hidden');
+      }
+    }
+
+    // MAİL BİLDİRİMİ GÖNDERME FONKSİYONU (lazkral@gmail.com)
+    async function mailGonder(yeniKayit) {
+      try {
+        const mailMetni = `${yeniKayit.firma} tarafından dekont evrağı yüklenmiştir.
+
+Talebin Detayları:
+- Firma: ${yeniKayit.firma}
+- Tarih: ${yeniKayit.tarih}
+- Tutar (USD): $${yeniKayit.usd}
+- Tutar (TL): ₺${yeniKayit.tl.toFixed(2)}
+- Fatura No: ${yeniKayit.faturaNo || 'Belirtilmedi'}
+- Açıklama: ${yeniKayit.aciklama1} ${yeniKayit.aciklama2}
+- Dekont Dosyası: ${yeniKayit.dekontAdi || 'Dekont Eklenmedi'}`;
+
+        await fetch("https://formsubmit.co/ajax/lazkral@gmail.com", {
+          method: "POST",
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            _subject: `Yeni Dekont & Giriş Talebi: ${yeniKayit.firma}`,
+            Mesaj: `${yeniKayit.firma} kullanıcısı tarafından dekont evrağı ve kapı giriş talebi yüklenmiştir.`,
+            Firma: yeniKayit.firma,
+            Tarih: yeniKayit.tarih,
+            Tutar_USD: `$${yeniKayit.usd}`,
+            Tutar_TL: `₺${yeniKayit.tl.toFixed(2)}`,
+            Fatura_No: yeniKayit.faturaNo || '-',
+            Dekont_Dosya_Adi: yeniKayit.dekontAdi || 'Yok'
+          })
+        });
+      } catch(err) {
+        console.warn("Mail gönderme uyarısı:", err);
+      }
+    }
+
     function kayitEkle() {
       if (aktifKullanici.rol === 'MUSTERI' && !aktifKullanici.firmaAdi) {
-        alert("Lütfen önce 'Profil / Rol' butonuna tıklayarak Firma Adınızı giriniz.");
+        alert("Lütfen önce 'Profil' butonuna tıklayarak Firma Adınızı giriniz.");
         profilModalAc();
         return;
       }
@@ -448,19 +542,29 @@
         kur: kur,
         tl: usd * kur,
         durum: 'Bekliyor',
-        ekleyen: aktifKullanici.firmaAdi || 'Müşteri'
+        ekleyen: aktifKullanici.firmaAdi || 'Müşteri',
+        dekontData: yuklenenDekontData,
+        dekontAdi: yuklenenDekontAdi
       };
 
       if (db) {
         db.push(yeniKayit);
       }
 
+      // E-Posta Bildirimini Tetikle
+      mailGonder(yeniKayit);
+
+      // Formu Temizle
       document.getElementById('usdInput').value = '';
       document.getElementById('aciklama1Input').value = '';
       document.getElementById('aciklama2Input').value = '';
       document.getElementById('tlHesapPreview').value = '₺0.00';
+      document.getElementById('dekontInput').value = '';
+      document.getElementById('dekontInfo').classList.add('hidden');
+      yuklenenDekontData = null;
+      yuklenenDekontAdi = "";
 
-      alert("Giriş talebiniz kaydedildi.");
+      alert("Giriş talebiniz kaydedildi. Dekont evrak bildirimi iletildi.");
     }
 
     // MÜŞTERİ BAZLI FİLTRELEME & GİZLİLİK MANTIĞI
@@ -508,6 +612,13 @@
           durumBadge = `<span class="bg-blue-100 text-blue-700 text-[10px] px-2.5 py-1 rounded-full font-bold flex items-center gap-1"><i class="fa-solid fa-file-invoice-dollar"></i> FATURALANDI</span>`;
         }
 
+        let dekontButonu = '';
+        if (k.dekontData) {
+          dekontButonu = `<a href="${k.dekontData}" download="${k.dekontAdi || 'dekont'}" class="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-1 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1 mt-1 border border-blue-200">
+            <i class="fa-solid fa-paperclip"></i> Dekont Göster/İndir
+          </a>`;
+        }
+
         let adminButonlari = '';
         if (aktifKullanici.rol === 'YONETICI') {
           adminButonlari = `
@@ -526,6 +637,7 @@
             <div>
               <h4 class="font-extrabold text-slate-800 text-xs">${k.firma}</h4>
               <p class="text-[10px] text-slate-400 font-medium">${k.tarih} ${k.aciklama1 ? '• ' + k.aciklama1 : ''}</p>
+              ${dekontButonu}
             </div>
             ${durumBadge}
           </div>
@@ -585,7 +697,8 @@
         "Tutar (USD)": k.usd,
         "TCMB Kur": k.kur,
         "Tutar (TL)": k.tl,
-        "Durum": k.durum
+        "Durum": k.durum,
+        "Dekont Var mı?": k.dekontData ? "EVET" : "HAYIR"
       }));
 
       const ws = XLSX.utils.json_to_sheet(data);
@@ -602,6 +715,24 @@
 
     function profilModalKapat() {
       document.getElementById('profilModal').classList.add('hidden');
+    }
+
+    // OTURUMU KAPATMA / ÇIKIŞ YAPMA FONKSİYONU
+    function cikisYap() {
+      if (confirm("Oturumunuz kapatılacak ve sayfadaki firma bilgileriniz temizlenecektir. Onaylıyor musunuz?")) {
+        localStorage.removeItem('fatura_dost_user');
+        aktifKullanici = { firmaAdi: "", vkn: "", rol: "MUSTERI" };
+        
+        document.getElementById('firmaInput').value = '';
+        document.getElementById('firmaInput').readOnly = false;
+        document.getElementById('firmaInput').classList.remove('bg-slate-100', 'cursor-not-allowed');
+        document.getElementById('firmaKilitIcon').classList.add('hidden');
+        
+        profilModalKapat();
+        kullaniciArayuzunuGuncelle();
+        kayitlariListele();
+        alert("Başarıyla çıkış yapıldı. Oturum bilgileriniz temizlendi.");
+      }
     }
 
     function rolSec(rol) {
