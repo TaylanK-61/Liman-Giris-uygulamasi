@@ -76,7 +76,7 @@
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="block text-xs font-bold text-slate-600">TCMB Kur (USD)</label>
+              <label class="block text-xs font-bold text-slate-600">Önceki İşgünü Kuru</label>
               <button type="button" onclick="kuruGuncelle()" class="text-[10px] text-blue-600 font-bold flex items-center gap-1 hover:underline">
                 <i class="fa-solid fa-rotate"></i> Yenile
               </button>
@@ -202,12 +202,10 @@
 
   <!-- JAVASCRIPT KODLARI -->
   <script>
-    // Global Durum Değişkenleri
     let kayitlar = JSON.parse(localStorage.getItem('fatura_dost_kayitlar') || '[]');
     let aktifKullanici = JSON.parse(localStorage.getItem('fatura_dost_user') || '{"firmaAdi":"","vkn":"","rol":"MUSTERI"}');
     let seciliFiltre = 'HEPSİ';
 
-    // Sayfa Yüklendiğinde
     document.addEventListener('DOMContentLoaded', () => {
       const bugun = new Date().toISOString().split('T')[0];
       document.getElementById('tarihInput').value = bugun;
@@ -217,7 +215,6 @@
       kayitlariListele();
     });
 
-    // Kullanıcı Rolünü ve Profilini UI'a Yansıt
     function kullaniciArayuzunuGuncelle() {
       const rolBadge = document.getElementById('rolBadge');
       const aktifFirmaText = document.getElementById('aktifFirmaAdi');
@@ -243,7 +240,6 @@
           aktifFirmaText.innerText = 'FİRMA GİRİNİZ';
         }
       } else {
-        // Güvenlik / Yönetici Modu
         rolBadge.innerText = 'YÖNETİCİ / GÜVENLİK';
         rolBadge.className = 'bg-amber-500 text-slate-900 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider';
         formModuText.innerText = 'Yönetici Manuel Ekleme';
@@ -255,61 +251,86 @@
       }
     }
 
-    // TCMB Kur Çekme (CORS Proxy ve Yedek API Destekli)
+    // GÜNCELLENEN TCMB KUR ÇEKME MANTIĞI (Önceki İş Günü Odaklı)
     async function kuruGuncelle() {
       const tarihInput = document.getElementById('tarihInput');
       const kurInput = document.getElementById('kurInput');
       if (!tarihInput || !kurInput) return;
 
-      const secilenTarih = tarihInput.value;
-      if (!secilenTarih) return;
+      const secilenTarihStr = tarihInput.value;
+      if (!secilenTarihStr) return;
 
       kurInput.value = "Yükleniyor...";
-      const [yyyy, mm, dd] = secilenTarih.split('-');
-      
-      const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${yyyy}${mm}/${dd}${mm}${yyyy}.xml`;
-      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`;
 
-      try {
-        let response = await fetch(proxyUrl);
-        if (!response.ok) {
-          response = await fetch(`https://corsproxy.io/?${encodeURIComponent('https://www.tcmb.gov.tr/kurlar/today.xml')}`);
+      // Seçilen tarihi tarih objesine çevir
+      const [y, m, d] = secilenTarihStr.split('-').map(Number);
+      let hedefTarih = new Date(y, m - 1, d);
+
+      // KURAL: Seçilen tarihten BİR ÖNCEKİ GÜNDEN aramaya başla
+      hedefTarih.setDate(hedefTarih.getDate() - 1);
+
+      let kurBulundu = false;
+
+      // Maksimum 10 gün geriye doğru geçerli iş gününü tara
+      for (let i = 0; i < 10; i++) {
+        const dayOfWeek = hedefTarih.getDay(); // 0: Pazar, 6: Cumartesi
+
+        // Hafta sonu ise otomatik bir gün daha geriye git
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          hedefTarih.setDate(hedefTarih.getDate() - 1);
+          continue;
         }
 
-        if (response.ok) {
-          const xmlText = await response.text();
-          const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
-          const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
+        const yyyy = hedefTarih.getFullYear();
+        const mm = String(hedefTarih.getMonth() + 1).padStart(2, '0');
+        const dd = String(hedefTarih.getDate()).padStart(2, '0');
 
-          if (usdNode && usdNode.textContent) {
-            const rate = parseFloat(usdNode.textContent.replace(',', '.'));
-            kurInput.value = rate.toFixed(4).replace('.', ',');
+        const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${yyyy}${mm}/${dd}${mm}${yyyy}.xml`;
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`;
+
+        try {
+          const response = await fetch(proxyUrl);
+          if (response.ok) {
+            const xmlText = await response.text();
+            const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+            const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
+
+            if (usdNode && usdNode.textContent) {
+              const rate = parseFloat(usdNode.textContent.replace(',', '.'));
+              if (!isNaN(rate) && rate > 0) {
+                kurInput.value = rate.toFixed(4).replace('.', ',');
+                tlHesapla();
+                kurBulundu = true;
+                break; // Kur bulundu, döngüden çık
+              }
+            }
+          }
+        } catch (err) {
+          console.warn(`${dd}.${mm}.${yyyy} tarihi için XML alınamadı, önceki güne bakılıyor...`);
+        }
+
+        // Eğer o gün resmi tatil vs. ise bir gün daha geriye git
+        hedefTarih.setDate(hedefTarih.getDate() - 1);
+      }
+
+      // Eğer hiçbir geçmiş tarih XML'i bulunamadıysa yedek servisi çağır
+      if (!kurBulundu) {
+        try {
+          const backupRes = await fetch('https://open.er-api.com/v6/latest/USD');
+          const backupData = await backupRes.json();
+          if (backupData && backupData.rates && backupData.rates.TRY) {
+            kurInput.value = backupData.rates.TRY.toFixed(4).replace('.', ',');
             tlHesapla();
             return;
           }
+        } catch (e) {
+          console.error("Yedek kur servisi de yanıt vermedi:", e);
         }
-      } catch (err) {
-        console.warn("TCMB servisi yanıt vermedi, yedek API devreye giriyor...", err);
+        kurInput.value = "49,1925";
+        tlHesapla();
       }
-
-      // Yedek API (Open ER API)
-      try {
-        const backupRes = await fetch('https://open.er-api.com/v6/latest/USD');
-        const backupData = await backupRes.json();
-        if (backupData && backupData.rates && backupData.rates.TRY) {
-          kurInput.value = backupData.rates.TRY.toFixed(4).replace('.', ',');
-          tlHesapla();
-          return;
-        }
-      } catch (e) {
-        console.error("Yedek kur servisi de başarısız:", e);
-      }
-
-      kurInput.value = "49,1925"; // Varsayılan Güvenli Değer
-      tlHesapla();
     }
 
-    // TL Tutar Otomatik Hesaplama
     function tlHesapla() {
       const usdVal = parseFloat(document.getElementById('usdInput').value || '0');
       const kurVal = parseFloat((document.getElementById('kurInput').value || '0').replace(',', '.'));
@@ -323,7 +344,6 @@
       }
     }
 
-    // Yeni Kayıt Ekleme
     function kayitEkle() {
       const firma = document.getElementById('firmaInput').value.trim();
       const usd = parseFloat(document.getElementById('usdInput').value);
@@ -346,41 +366,36 @@
         usd: usd,
         kur: kur,
         tl: usd * kur,
-        durum: 'Bekliyor', // İlk oluşturulduğunda 'Bekliyor' duruma düşer
+        durum: 'Bekliyor',
         ekleyen: aktifKullanici.firmaAdi || 'Müşteri'
       };
 
       kayitlar.unshift(yeniKayit);
       localStorage.setItem('fatura_dost_kayitlar', JSON.stringify(kayitlar));
 
-      // Formu temizle
       document.getElementById('usdInput').value = '';
       document.getElementById('aciklama1Input').value = '';
       document.getElementById('aciklama2Input').value = '';
       document.getElementById('tlHesapPreview').value = '₺0.00';
 
-      alert("Giriş talebiniz başarıyla oluşturuldu. Kapı yetkilisi onay verdiğinde geçiş yapabilirsiniz.");
+      alert("Giriş talebiniz başarıyla oluşturuldu.");
       kayitlariListele();
     }
 
-    // Kayıtları Ekrana Listeleme
     function kayitlariListele() {
       const container = document.getElementById('kayitlarContainer');
       container.innerHTML = '';
 
       let filtreliKanal = kayitlar;
 
-      // Eğer müşteri modundaysa sadece kendi firmasını görsün
       if (aktifKullanici.rol === 'MUSTERI' && aktifKullanici.firmaAdi) {
         filtreliKanal = filtreliKanal.filter(k => k.firma.toLowerCase().includes(aktifKullanici.firmaAdi.toLowerCase()));
       }
 
-      // Tab filtresi
       if (seciliFiltre !== 'HEPSİ') {
         filtreliKanal = filtreliKanal.filter(k => k.durum === seciliFiltre);
       }
 
-      // Özet Kartları Güncelle
       ozetleriHesapla(filtreliKanal);
 
       if (filtreliKanal.length === 0) {
@@ -429,7 +444,6 @@
       });
     }
 
-    // Özet Hesaplama
     function ozetleriHesapla(liste) {
       let usd = 0, tl = 0, bekleyen = 0;
       liste.forEach(k => {
@@ -443,7 +457,6 @@
       document.getElementById('bekleyenOzet').innerText = bekleyen;
     }
 
-    // Durum Değiştir (Yönetici Modunda)
     function durumDegistir(id, yeniDurum) {
       const idx = kayitlar.findIndex(k => k.id === id);
       if (idx !== -1) {
@@ -453,7 +466,6 @@
       }
     }
 
-    // Kayıt Sil
     function kayitSil(id) {
       if (confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
         kayitlar = kayitlar.filter(k => k.id !== id);
@@ -462,13 +474,11 @@
       }
     }
 
-    // Filtre Değiştir
     function filtreUygula(filtre) {
       seciliFiltre = filtre;
       kayitlariListele();
     }
 
-    // Excel İndirme
     function excelEsafe() {
       if (kayitlar.length === 0) {
         alert("İndirilecek kayıt bulunmuyor.");
@@ -493,7 +503,6 @@
       XLSX.writeFile(wb, "Kapi_Giris_Listesi.xlsx");
     }
 
-    // Profil Modal Kontrolleri
     function profilModalAc() {
       document.getElementById('modalFirmaAdi').value = aktifKullanici.firmaAdi || '';
       document.getElementById('modalVkn').value = aktifKullanici.vkn || '';
