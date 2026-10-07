@@ -72,7 +72,7 @@
     <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200/80 space-y-4">
       <div class="flex justify-between items-center border-b border-slate-100 pb-3">
         <h2 class="font-bold text-slate-800 text-base flex items-center gap-2">
-          <i class="fa-solid fa-circle-plus text-blue-600"></i> Yeni Giriş Talebi
+          <i class="fa-solid fa-circle-plus text-blue-600"></i> Yeni Giriş & Hizmet Talebi
         </h2>
         <span class="text-[11px] text-slate-400 font-semibold" id="formModuText">Müşteri Formu</span>
       </div>
@@ -117,8 +117,23 @@
           </div>
         </div>
 
+        <!-- DİNAMİK HİZMET TÜRLERİ & ADET ALANI -->
+        <div class="space-y-2 pt-1 border-t border-slate-100">
+          <div class="flex justify-between items-center">
+            <label class="block text-xs font-bold text-slate-700">Talep Edilen Hizmetler *</label>
+            <button type="button" onclick="hizmetSatiriEkle()" class="text-[11px] bg-blue-50 text-blue-600 font-extrabold px-2.5 py-1 rounded-lg hover:bg-blue-100 border border-blue-200 flex items-center gap-1">
+              <i class="fa-solid fa-plus-circle"></i> Hizmet Ekle
+            </button>
+          </div>
+
+          <!-- Hizmet Satırları Konteyneri -->
+          <div id="hizmetlerContainer" class="space-y-2">
+            <!-- JavaScript buraya satırları ekleyecek -->
+          </div>
+        </div>
+
         <!-- Açıklama 1 ve 2 -->
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3 pt-1">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">Açıklama 1 (Plaka / Yük)</label>
             <input type="text" id="aciklama1Input" placeholder="34 ABC 123" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs rounded-xl p-2.5 outline-none focus:border-blue-500">
@@ -129,19 +144,19 @@
           </div>
         </div>
 
-        <!-- Tutar USD ve TL Hesabı -->
-        <div class="grid grid-cols-2 gap-3">
+        <!-- Tutar Hesap Özeti -->
+        <div class="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/80">
           <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Tutar USD *</label>
-            <input type="number" step="0.01" id="usdInput" oninput="tlHesapla()" placeholder="0.00" required class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-extrabold rounded-xl p-2.5 outline-none focus:border-blue-500">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase">Toplam Tutar (USD)</label>
+            <input type="text" id="usdInput" readonly value="$0.00" class="w-full bg-transparent text-blue-700 text-sm font-black outline-none cursor-default">
           </div>
           <div>
-            <label class="block text-xs font-bold text-slate-600 mb-1">Tahmini TL Tutar</label>
-            <input type="text" id="tlHesapPreview" readonly placeholder="₺0.00" class="w-full bg-slate-100 border border-slate-200 text-emerald-700 text-xs font-extrabold rounded-xl p-2.5 outline-none cursor-not-allowed">
+            <label class="block text-[10px] font-bold text-slate-400 uppercase">Tahmini TL Tutar</label>
+            <input type="text" id="tlHesapPreview" readonly value="₺0.00" class="w-full bg-transparent text-emerald-700 text-sm font-black outline-none cursor-default">
           </div>
         </div>
 
-        <!-- YENİ: DEKONT EVRAĞI YÜKLEME ALANI -->
+        <!-- DEKONT EVRAĞI YÜKLEME ALANI -->
         <div class="bg-blue-50/60 p-3 rounded-2xl border border-blue-100 space-y-2">
           <label class="block text-xs font-bold text-blue-900 flex items-center justify-between">
             <span><i class="fa-solid fa-file-arrow-up text-blue-600"></i> Dekont Evrağı Yükle</span>
@@ -277,6 +292,16 @@
       console.warn("Firebase bağlantı hatası:", e);
     }
 
+    // TANIMLI HİZMET LİSTESİ VE BİRİM FİYATLARI
+    const HIZMET_TURLERI = [
+      { ad: "Kapı Giriş Talebi", fiyat: 200 },
+      { ad: "Forklift Talebi", fiyat: 300 },
+      { ad: "Vinç Talebi", fiyat: 500 },
+      { ad: "Martaş Demir Sahası Bot Talebi", fiyat: 350 },
+      { ad: "Opet/Botaş Demir Sahası Bot Talebi", fiyat: 1000 },
+      { ad: "Yakıt İkmal Talebi", fiyat: 500 }
+    ];
+
     let kayitlar = [];
     let yuklenenDekontData = null;
     let yuklenenDekontAdi = "";
@@ -288,9 +313,9 @@
       document.getElementById('tarihInput').value = bugun;
       
       kullaniciArayuzunuGuncelle();
+      hizmetSatiriEkle(); // İlk varsayılan hizmet satırını ekle
       kuruGuncelle();
 
-      // CANLI VERİTABANI DİNLENİYOR
       if (db) {
         db.on('value', (snapshot) => {
           const data = snapshot.val();
@@ -305,6 +330,70 @@
         });
       }
     });
+
+    // DİNAMİK HİZMET SATIRI EKLEME
+    function hizmetSatiriEkle() {
+      const container = document.getElementById('hizmetlerContainer');
+      const rowId = 'hizmet_row_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+
+      let optionsHtml = HIZMET_TURLERI.map(h => `<option value="${h.ad}" data-fiyat="${h.fiyat}">${h.ad} - $${h.fiyat}</option>`).join('');
+
+      const div = document.createElement('div');
+      div.id = rowId;
+      div.className = "hizmet-satiri grid grid-cols-12 gap-1.5 items-center bg-slate-50 p-2 rounded-xl border border-slate-200/80";
+      div.innerHTML = `
+        <div class="col-span-6">
+          <select onchange="hizmetHesapla()" class="hizmet-select w-full bg-white border border-slate-200 text-slate-800 text-[11px] font-bold rounded-lg p-2 outline-none focus:border-blue-500">
+            ${optionsHtml}
+          </select>
+        </div>
+        <div class="col-span-2">
+          <input type="number" min="1" value="1" oninput="hizmetHesapla()" class="hizmet-adet w-full bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-lg p-2 text-center outline-none focus:border-blue-500" placeholder="Adet">
+        </div>
+        <div class="col-span-3">
+          <input type="text" readonly class="hizmet-tutar w-full bg-slate-100 text-blue-700 text-xs font-black rounded-lg p-2 text-right outline-none cursor-default" value="$200.00">
+        </div>
+        <div class="col-span-1 text-center">
+          <button type="button" onclick="hizmetSatiriSil('${rowId}')" class="text-rose-500 hover:text-rose-700 text-xs font-bold"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+      `;
+
+      container.appendChild(div);
+      hizmetHesapla();
+    }
+
+    function hizmetSatiriSil(rowId) {
+      const container = document.getElementById('hizmetlerContainer');
+      if (container.children.length <= 1) {
+        alert("En az 1 adet hizmet seçili olmalıdır.");
+        return;
+      }
+      const el = document.getElementById(rowId);
+      if (el) el.remove();
+      hizmetHesapla();
+    }
+
+    function hizmetHesapla() {
+      let toplamUsd = 0;
+      const rows = document.querySelectorAll('.hizmet-satiri');
+
+      rows.forEach(row => {
+        const select = row.querySelector('.hizmet-select');
+        const adetInput = row.querySelector('.hizmet-adet');
+        const tutarInput = row.querySelector('.hizmet-tutar');
+
+        const selectedOption = select.options[select.selectedIndex];
+        const birimFiyat = parseFloat(selectedOption.getAttribute('data-fiyat') || '0');
+        const adet = parseInt(adetInput.value || '1');
+
+        const satirToplam = birimFiyat * (adet > 0 ? adet : 1);
+        tutarInput.value = '$' + satirToplam.toFixed(2);
+        toplamUsd += satirToplam;
+      });
+
+      document.getElementById('usdInput').value = '$' + toplamUsd.toFixed(2);
+      tlHesapla();
+    }
 
     function kullaniciArayuzunuGuncelle() {
       const rolBadge = document.getElementById('rolBadge');
@@ -343,14 +432,14 @@
       }
     }
 
-    // ⚡ 100% GARANTİLİ VE HIZLI DÖVİZ KURU ÇEKME FONKSİYONU
+    // KUR HESAPLAMA MANTIĞI
     function getPreviousBusinessDateInfo(dateStr) {
       const [y, m, d] = dateStr.split('-').map(Number);
       let dt = new Date(y, m - 1, d);
       
-      dt.setDate(dt.getDate() - 1); // 1 gün geriye git
-      if (dt.getDay() === 0) dt.setDate(dt.getDate() - 2); // Pazar ise Cuma
-      else if (dt.getDay() === 6) dt.setDate(dt.getDate() - 1); // Cumartesi ise Cuma
+      dt.setDate(dt.getDate() - 1);
+      if (dt.getDay() === 0) dt.setDate(dt.getDate() - 2);
+      else if (dt.getDay() === 6) dt.setDate(dt.getDate() - 1);
 
       const yyyy = dt.getFullYear();
       const mm = String(dt.getMonth() + 1).padStart(2, '0');
@@ -369,16 +458,13 @@
       if (!tarihInput || !kurInput) return;
 
       const val = tarihInput.value;
-      if (!val) {
-        kurInput.value = "";
-        return;
-      }
+      if (!val) return;
 
       kurInput.value = "Yükleniyor...";
 
       const dateInfo = getPreviousBusinessDateInfo(val);
 
-      // KATMAN 1: TCMB XML (CORS Proxy'leri ile)
+      // TCMB XML
       const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${dateInfo.yearStr}/${dateInfo.dayStr}.xml`;
       const proxies = [
         `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`,
@@ -410,7 +496,7 @@
         } catch (e) {}
       }
 
-      // KATMAN 2: DOĞRUDAN TARAYICI DESTEKLİ FRANKFURTER API (Hızlı ve Kesin)
+      // FRANKFURTER YEDEK
       try {
         const frankRes = await fetch(`https://api.frankfurter.app/${dateInfo.isoDate}?from=USD&to=TRY`);
         if (frankRes && frankRes.ok) {
@@ -423,7 +509,7 @@
         }
       } catch (e) {}
 
-      // KATMAN 3: CANLI OPEN ER-API
+      // OPEN ER YEDEK
       try {
         const backupRes = await fetch('https://open.er-api.com/v6/latest/USD');
         if (backupRes && backupRes.ok) {
@@ -436,13 +522,13 @@
         }
       } catch (e) {}
 
-      // YEDEK VARSAYILAN
       kurInput.value = "49,1925";
       tlHesapla();
     }
 
     function tlHesapla() {
-      const usdVal = parseFloat(document.getElementById('usdInput').value || '0');
+      const usdStr = document.getElementById('usdInput').value.replace('$', '');
+      const usdVal = parseFloat(usdStr || '0');
       const kurVal = parseFloat((document.getElementById('kurInput').value || '0').replace(',', '.'));
       const tlPreview = document.getElementById('tlHesapPreview');
 
@@ -454,7 +540,6 @@
       }
     }
 
-    // DEKONT SEÇİLDİĞİNDE BASE64 OKUMA
     function dekontSecildi(input) {
       const infoDiv = document.getElementById('dekontInfo');
       const adiSpan = document.getElementById('dekontDosyaAdi');
@@ -465,7 +550,7 @@
         
         const reader = new FileReader();
         reader.onload = function(e) {
-          yuklenenDekontData = e.target.result; // Base64
+          yuklenenDekontData = e.target.result;
           adiSpan.innerText = file.name + " (" + (file.size / 1024).toFixed(1) + " KB)";
           infoDiv.classList.remove('hidden');
         };
@@ -477,20 +562,8 @@
       }
     }
 
-    // MAİL BİLDİRİMİ GÖNDERME FONKSİYONU (lazkral@gmail.com)
     async function mailGonder(yeniKayit) {
       try {
-        const mailMetni = `${yeniKayit.firma} tarafından dekont evrağı yüklenmiştir.
-
-Talebin Detayları:
-- Firma: ${yeniKayit.firma}
-- Tarih: ${yeniKayit.tarih}
-- Tutar (USD): $${yeniKayit.usd}
-- Tutar (TL): ₺${yeniKayit.tl.toFixed(2)}
-- Fatura No: ${yeniKayit.faturaNo || 'Belirtilmedi'}
-- Açıklama: ${yeniKayit.aciklama1} ${yeniKayit.aciklama2}
-- Dekont Dosyası: ${yeniKayit.dekontAdi || 'Dekont Eklenmedi'}`;
-
         await fetch("https://formsubmit.co/ajax/lazkral@gmail.com", {
           method: "POST",
           headers: { 
@@ -498,19 +571,18 @@ Talebin Detayları:
             'Accept': 'application/json'
           },
           body: JSON.stringify({
-            _subject: `Yeni Dekont & Giriş Talebi: ${yeniKayit.firma}`,
-            Mesaj: `${yeniKayit.firma} kullanıcısı tarafından dekont evrağı ve kapı giriş talebi yüklenmiştir.`,
+            _subject: `Yeni Hizmet & Dekont Talebi: ${yeniKayit.firma}`,
             Firma: yeniKayit.firma,
             Tarih: yeniKayit.tarih,
+            Hizmetler: yeniKayit.hizmetlerOzet,
             Tutar_USD: `$${yeniKayit.usd}`,
             Tutar_TL: `₺${yeniKayit.tl.toFixed(2)}`,
             Fatura_No: yeniKayit.faturaNo || '-',
-            Dekont_Dosya_Adi: yeniKayit.dekontAdi || 'Yok'
+            Açıklama: `${yeniKayit.aciklama1} ${yeniKayit.aciklama2}`,
+            Dekont_Dosya_Adi: yeniKayit.dekontAdi || 'Dekont Eklenmedi'
           })
         });
-      } catch(err) {
-        console.warn("Mail gönderme uyarısı:", err);
-      }
+      } catch(err) {}
     }
 
     function kayitEkle() {
@@ -521,13 +593,33 @@ Talebin Detayları:
       }
 
       const firma = document.getElementById('firmaInput').value.trim();
-      const usd = parseFloat(document.getElementById('usdInput').value);
+      const usdStr = document.getElementById('usdInput').value.replace('$', '');
+      const usd = parseFloat(usdStr || '0');
       const kur = parseFloat((document.getElementById('kurInput').value || '0').replace(',', '.'));
 
       if (!firma || isNaN(usd) || usd <= 0) {
-        alert("Lütfen Firma Adı ve geçerli bir USD Tutarı giriniz.");
+        alert("Lütfen Firma Adı ve geçerli bir hizmet seçimi yapınız.");
         return;
       }
+
+      // Seçili Hizmetleri Topla
+      const hizmetListesi = [];
+      document.querySelectorAll('.hizmet-satiri').forEach(row => {
+        const select = row.querySelector('.hizmet-select');
+        const adetInput = row.querySelector('.hizmet-adet');
+        const selectedOption = select.options[select.selectedIndex];
+        const birimFiyat = parseFloat(selectedOption.getAttribute('data-fiyat') || '0');
+        const adet = parseInt(adetInput.value || '1');
+
+        hizmetListesi.push({
+          hizmetAd: select.value,
+          adet: adet,
+          birimFiyat: birimFiyat,
+          toplamUsd: birimFiyat * adet
+        });
+      });
+
+      const hizmetlerOzet = hizmetListesi.map(h => `${h.hizmetAd} (${h.adet}x$${h.birimFiyat})`).join(', ');
 
       const yeniKayit = {
         id: Date.now(),
@@ -538,6 +630,8 @@ Talebin Detayları:
         faturaNo: document.getElementById('faturaNoInput').value.trim(),
         aciklama1: document.getElementById('aciklama1Input').value.trim(),
         aciklama2: document.getElementById('aciklama2Input').value.trim(),
+        hizmetler: hizmetListesi,
+        hizmetlerOzet: hizmetlerOzet,
         usd: usd,
         kur: kur,
         tl: usd * kur,
@@ -551,30 +645,27 @@ Talebin Detayları:
         db.push(yeniKayit);
       }
 
-      // E-Posta Bildirimini Tetikle
       mailGonder(yeniKayit);
 
       // Formu Temizle
-      document.getElementById('usdInput').value = '';
       document.getElementById('aciklama1Input').value = '';
       document.getElementById('aciklama2Input').value = '';
-      document.getElementById('tlHesapPreview').value = '₺0.00';
       document.getElementById('dekontInput').value = '';
       document.getElementById('dekontInfo').classList.add('hidden');
+      document.getElementById('hizmetlerContainer').innerHTML = '';
+      hizmetSatiriEkle();
       yuklenenDekontData = null;
       yuklenenDekontAdi = "";
 
-      alert("Giriş talebiniz kaydedildi. Dekont evrak bildirimi iletildi.");
+      alert("Hizmet talebiniz kaydedildi. Dekont evrak bildirimi iletildi.");
     }
 
-    // MÜŞTERİ BAZLI FİLTRELEME & GİZLİLİK MANTIĞI
     function kayitlariListele() {
       const container = document.getElementById('kayitlarContainer');
       container.innerHTML = '';
 
       let filtreliKanal = kayitlar;
 
-      // MÜŞTERİ MODUNDA SADECE KENDİ FİRMASININKİLERİ GÖRSÜN
       if (aktifKullanici.rol === 'MUSTERI') {
         if (!aktifKullanici.firmaAdi) {
           container.innerHTML = `<div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-2xl text-center space-y-2 text-xs font-semibold">
@@ -590,7 +681,6 @@ Talebin Detayları:
         filtreliKanal = filtreliKanal.filter(k => k.firma && k.firma.toLowerCase().trim() === mFirma);
       }
 
-      // TAB FİLTRESİ
       if (seciliFiltre !== 'HEPSİ') {
         filtreliKanal = filtreliKanal.filter(k => k.durum === seciliFiltre);
       }
@@ -615,9 +705,11 @@ Talebin Detayları:
         let dekontButonu = '';
         if (k.dekontData) {
           dekontButonu = `<a href="${k.dekontData}" download="${k.dekontAdi || 'dekont'}" class="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-1 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1 mt-1 border border-blue-200">
-            <i class="fa-solid fa-paperclip"></i> Dekont Göster/İndir
+            <i class="fa-solid fa-paperclip"></i> Dekont İndir
           </a>`;
         }
+
+        let hizmetlerHtml = k.hizmetlerOzet ? `<p class="text-[11px] text-blue-900 font-bold bg-blue-50 p-2 rounded-xl mt-1.5 border border-blue-100"><i class="fa-solid fa-list text-blue-600"></i> Hizmetler: ${k.hizmetlerOzet}</p>` : '';
 
         let adminButonlari = '';
         if (aktifKullanici.rol === 'YONETICI') {
@@ -637,14 +729,15 @@ Talebin Detayları:
             <div>
               <h4 class="font-extrabold text-slate-800 text-xs">${k.firma}</h4>
               <p class="text-[10px] text-slate-400 font-medium">${k.tarih} ${k.aciklama1 ? '• ' + k.aciklama1 : ''}</p>
-              ${dekontButonu}
             </div>
             ${durumBadge}
           </div>
+          ${hizmetlerHtml}
           <div class="flex justify-between items-center text-xs pt-1">
             <span class="font-black text-slate-700">$${(k.usd||0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
             <span class="font-extrabold text-emerald-600">₺${(k.tl||0).toLocaleString('tr-TR', {minimumFractionDigits: 2})}</span>
           </div>
+          ${dekontButonu}
           ${adminButonlari}
         `;
         container.appendChild(card);
@@ -692,6 +785,7 @@ Talebin Detayları:
         "Tarih": k.tarih,
         "Firma": k.firma,
         "Firma Kodu": k.firmaKodu,
+        "Talep Edilen Hizmetler": k.hizmetlerOzet || '-',
         "Açıklama 1": k.aciklama1,
         "Açıklama 2": k.aciklama2,
         "Tutar (USD)": k.usd,
@@ -717,7 +811,6 @@ Talebin Detayları:
       document.getElementById('profilModal').classList.add('hidden');
     }
 
-    // OTURUMU KAPATMA / ÇIKIŞ YAPMA FONKSİYONU
     function cikisYap() {
       if (confirm("Oturumunuz kapatılacak ve sayfadaki firma bilgileriniz temizlenecektir. Onaylıyor musunuz?")) {
         localStorage.removeItem('fatura_dost_user');
@@ -731,7 +824,7 @@ Talebin Detayları:
         profilModalKapat();
         kullaniciArayuzunuGuncelle();
         kayitlariListele();
-        alert("Başarıyla çıkış yapıldı. Oturum bilgileriniz temizlendi.");
+        alert("Başarıyla çıkış yapıldı.");
       }
     }
 
