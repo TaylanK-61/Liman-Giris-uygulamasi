@@ -9,8 +9,12 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome İkon Kütüphanesi -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- SheetJS (Excel Dışa Aktarma Kütüphanesi) -->
+  <!-- SheetJS (Excel Dışa Aktarma) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+  <!-- Firebase SDK (Canlı Ortak Veritabanı) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen pb-24 text-slate-800 font-sans">
 
@@ -157,7 +161,7 @@
 
       <!-- Kayıtlar Konteyneri -->
       <div id="kayitlarContainer" class="space-y-3 pt-2">
-        <p class="text-center text-slate-400 text-xs py-6">Kayıt yükleniyor...</p>
+        <p class="text-center text-slate-400 text-xs py-6">Kayıtlar canlı senkronize ediliyor...</p>
       </div>
     </div>
 
@@ -202,7 +206,20 @@
 
   <!-- JAVASCRIPT KODLARI -->
   <script>
-    let kayitlar = JSON.parse(localStorage.getItem('fatura_dost_kayitlar') || '[]');
+    // FIREBASE VERİTABANI BAĞLANTISI (Oluşturduğunuz Veritabanı URL'si)
+    const firebaseConfig = {
+      databaseURL: "https://limangiris-d2b11-default-rtdb.firebaseio.com"
+    };
+
+    let db;
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.database().ref("kayitlar");
+    } catch(e) {
+      console.warn("Firebase bağlantı hatası:", e);
+    }
+
+    let kayitlar = [];
     let aktifKullanici = JSON.parse(localStorage.getItem('fatura_dost_user') || '{"firmaAdi":"","vkn":"","rol":"MUSTERI"}');
     let seciliFiltre = 'HEPSİ';
 
@@ -212,7 +229,21 @@
       
       kullaniciArayuzunuGuncelle();
       kuruGuncelle();
-      kayitlariListele();
+
+      // CANLI VERİTABANI DİNLENİYOR (Anında tüm cihazlara veri yansır)
+      if (db) {
+        db.on('value', (snapshot) => {
+          const data = snapshot.val();
+          kayitlar = [];
+          if (data) {
+            Object.keys(data).forEach(key => {
+              kayitlar.push({ firebaseKey: key, ...data[key] });
+            });
+            kayitlar.sort((a, b) => b.id - a.id);
+          }
+          kayitlariListele();
+        });
+      }
     });
 
     function kullaniciArayuzunuGuncelle() {
@@ -251,7 +282,6 @@
       }
     }
 
-    // GÜNCELLENEN TCMB KUR ÇEKME MANTIĞI (Önceki İş Günü Odaklı)
     async function kuruGuncelle() {
       const tarihInput = document.getElementById('tarihInput');
       const kurInput = document.getElementById('kurInput');
@@ -262,20 +292,14 @@
 
       kurInput.value = "Yükleniyor...";
 
-      // Seçilen tarihi tarih objesine çevir
       const [y, m, d] = secilenTarihStr.split('-').map(Number);
       let hedefTarih = new Date(y, m - 1, d);
-
-      // KURAL: Seçilen tarihten BİR ÖNCEKİ GÜNDEN aramaya başla
       hedefTarih.setDate(hedefTarih.getDate() - 1);
 
       let kurBulundu = false;
 
-      // Maksimum 10 gün geriye doğru geçerli iş gününü tara
       for (let i = 0; i < 10; i++) {
-        const dayOfWeek = hedefTarih.getDay(); // 0: Pazar, 6: Cumartesi
-
-        // Hafta sonu ise otomatik bir gün daha geriye git
+        const dayOfWeek = hedefTarih.getDay();
         if (dayOfWeek === 0 || dayOfWeek === 6) {
           hedefTarih.setDate(hedefTarih.getDate() - 1);
           continue;
@@ -301,19 +325,14 @@
                 kurInput.value = rate.toFixed(4).replace('.', ',');
                 tlHesapla();
                 kurBulundu = true;
-                break; // Kur bulundu, döngüden çık
+                break;
               }
             }
           }
-        } catch (err) {
-          console.warn(`${dd}.${mm}.${yyyy} tarihi için XML alınamadı, önceki güne bakılıyor...`);
-        }
-
-        // Eğer o gün resmi tatil vs. ise bir gün daha geriye git
+        } catch (err) {}
         hedefTarih.setDate(hedefTarih.getDate() - 1);
       }
 
-      // Eğer hiçbir geçmiş tarih XML'i bulunamadıysa yedek servisi çağır
       if (!kurBulundu) {
         try {
           const backupRes = await fetch('https://open.er-api.com/v6/latest/USD');
@@ -323,9 +342,7 @@
             tlHesapla();
             return;
           }
-        } catch (e) {
-          console.error("Yedek kur servisi de yanıt vermedi:", e);
-        }
+        } catch (e) {}
         kurInput.value = "49,1925";
         tlHesapla();
       }
@@ -370,16 +387,16 @@
         ekleyen: aktifKullanici.firmaAdi || 'Müşteri'
       };
 
-      kayitlar.unshift(yeniKayit);
-      localStorage.setItem('fatura_dost_kayitlar', JSON.stringify(kayitlar));
+      if (db) {
+        db.push(yeniKayit);
+      }
 
       document.getElementById('usdInput').value = '';
       document.getElementById('aciklama1Input').value = '';
       document.getElementById('aciklama2Input').value = '';
       document.getElementById('tlHesapPreview').value = '₺0.00';
 
-      alert("Giriş talebiniz başarıyla oluşturuldu.");
-      kayitlariListele();
+      alert("Giriş talebiniz canlı bulut veritabanına gönderildi.");
     }
 
     function kayitlariListele() {
@@ -389,7 +406,7 @@
       let filtreliKanal = kayitlar;
 
       if (aktifKullanici.rol === 'MUSTERI' && aktifKullanici.firmaAdi) {
-        filtreliKanal = filtreliKanal.filter(k => k.firma.toLowerCase().includes(aktifKullanici.firmaAdi.toLowerCase()));
+        filtreliKanal = filtreliKanal.filter(k => k.firma && k.firma.toLowerCase().includes(aktifKullanici.firmaAdi.toLowerCase()));
       }
 
       if (seciliFiltre !== 'HEPSİ') {
@@ -417,9 +434,9 @@
         if (aktifKullanici.rol === 'YONETICI') {
           adminButonlari = `
             <div class="flex gap-1.5 pt-2 border-t border-slate-100 mt-2">
-              <button onclick="durumDegistir(${k.id}, 'Girişe İzin Verildi')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition">İzin Ver</button>
-              <button onclick="durumDegistir(${k.id}, 'Faturalandı')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition">Faturalandır</button>
-              <button onclick="kayitSil(${k.id})" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2 py-1.5 rounded-lg text-[10px] font-bold transition"><i class="fa-solid fa-trash"></i></button>
+              <button onclick="durumDegistir('${k.firebaseKey}', 'Girişe İzin Verildi')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition">İzin Ver</button>
+              <button onclick="durumDegistir('${k.firebaseKey}', 'Faturalandı')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition">Faturalandır</button>
+              <button onclick="kayitSil('${k.firebaseKey}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2 py-1.5 rounded-lg text-[10px] font-bold transition"><i class="fa-solid fa-trash"></i></button>
             </div>
           `;
         }
@@ -435,8 +452,8 @@
             ${durumBadge}
           </div>
           <div class="flex justify-between items-center text-xs pt-1">
-            <span class="font-black text-slate-700">$${k.usd.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
-            <span class="font-extrabold text-emerald-600">₺${k.tl.toLocaleString('tr-TR', {minimumFractionDigits: 2})}</span>
+            <span class="font-black text-slate-700">$${(k.usd||0).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+            <span class="font-extrabold text-emerald-600">₺${(k.tl||0).toLocaleString('tr-TR', {minimumFractionDigits: 2})}</span>
           </div>
           ${adminButonlari}
         `;
@@ -447,8 +464,8 @@
     function ozetleriHesapla(liste) {
       let usd = 0, tl = 0, bekleyen = 0;
       liste.forEach(k => {
-        usd += k.usd;
-        tl += k.tl;
+        usd += (k.usd || 0);
+        tl += (k.tl || 0);
         if (k.durum === 'Bekliyor') bekleyen++;
       });
 
@@ -457,20 +474,17 @@
       document.getElementById('bekleyenOzet').innerText = bekleyen;
     }
 
-    function durumDegistir(id, yeniDurum) {
-      const idx = kayitlar.findIndex(k => k.id === id);
-      if (idx !== -1) {
-        kayitlar[idx].durum = yeniDurum;
-        localStorage.setItem('fatura_dost_kayitlar', JSON.stringify(kayitlar));
-        kayitlariListele();
+    function durumDegistir(key, yeniDurum) {
+      if (db && key) {
+        db.child(key).update({ durum: yeniDurum });
       }
     }
 
-    function kayitSil(id) {
+    function kayitSil(key) {
       if (confirm("Bu kaydı silmek istediğinize emin misiniz?")) {
-        kayitlar = kayitlar.filter(k => k.id !== id);
-        localStorage.setItem('fatura_dost_kayitlar', JSON.stringify(kayitlar));
-        kayitlariListele();
+        if (db && key) {
+          db.child(key).remove();
+        }
       }
     }
 
@@ -485,7 +499,6 @@
         return;
       }
       const data = kayitlar.map(k => ({
-        "Sıra No": k.siraNo,
         "Tarih": k.tarih,
         "Firma": k.firma,
         "Firma Kodu": k.firmaKodu,
@@ -516,8 +529,8 @@
     function rolSec(rol) {
       aktifKullanici.rol = rol;
       if (rol === 'YONETICI') {
-        const pin = prompt("Güvenlik/Yönetici PIN Kodunu Giriniz (Varsayılan: 1234):");
-        if (pin !== '1234') {
+        const pin = prompt("Güvenlik/Yönetici PIN Kodunu Giriniz (Varsayılan: ****):");
+        if (pin !== '****') {
           alert("Hatalı PIN Kodu!");
           aktifKullanici.rol = 'MUSTERI';
           return;
