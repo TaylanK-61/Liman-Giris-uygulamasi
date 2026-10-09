@@ -432,7 +432,7 @@
       }
     }
 
-    // TARİHE ÖZEL SEÇİLİ TCMB ARŞİV KURU ÇEKME FONKSİYONU
+    // ⚡ LOVABLE'IN BİREBİR GERİYE DÖNÜK 8 GÜNLÜK TCMB KODUNUN JS / PROXY UYARLAMASI
     async function kuruGuncelle() {
       const tarihInput = document.getElementById('tarihInput');
       const kurInput = document.getElementById('kurInput');
@@ -443,118 +443,54 @@
 
       kurInput.value = "Yükleniyor...";
 
-      const selectedDate = new Date(dateVal + "T00:00:00");
-      const todayStr = new Date().toISOString().split('T')[0];
-      const isToday = (dateVal === todayStr);
+      // Lovable mantığı: Seçi tarihin UTC 12:00 saatini al
+      const base = new Date(dateVal + "T12:00:00Z");
+      let rateFound = null;
 
-      function formatParams(d) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        return {
-          yyyymm: `${yyyy}${mm}`,
-          ddmmyyyy: `${dd}${mm}${yyyy}`,
-          iso: `${yyyy}-${mm}-${dd}`
-        };
-      }
+      // 8 gün boyunca geriye doğru TCMB XML tara
+      for (let i = 0; i < 8; i++) {
+        const d = new Date(base.getTime() - i * 86400000);
+        const dd = String(d.getUTCDate()).padStart(2, "0");
+        const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+        const yyyy = d.getUTCFullYear();
 
-      let foundRate = null;
+        const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${yyyy}${mm}/${dd}${mm}${yyyy}.xml`;
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`;
 
-      if (isToday) {
-        const tcmbTodayUrl = "https://www.tcmb.gov.tr/kurlar/today.xml";
-        const proxies = [
-          `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbTodayUrl)}`,
-          `https://corsproxy.io/?${encodeURIComponent(tcmbTodayUrl)}`,
-          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(tcmbTodayUrl)}`
-        ];
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-        for (let pUrl of proxies) {
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 2000);
-            const res = await fetch(pUrl, { signal: controller.signal });
-            clearTimeout(timeoutId);
+          const res = await fetch(proxyUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
 
-            if (res.ok) {
-              const xmlText = await res.text();
-              if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
-                const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
-                const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
-                if (usdNode && usdNode.textContent) {
-                  const r = parseFloat(usdNode.textContent.trim().replace(',', '.'));
-                  if (!isNaN(r) && r > 0) { foundRate = r; break; }
-                }
-              }
+          if (res.ok) {
+            const xml = await res.text();
+            // Lovable'ın tam regex kalıbı
+            const m = xml.match(/CurrencyCode="USD"[\s\S]*?<ForexSelling>([\d.]+)<\/ForexSelling>/);
+            if (m && m[1]) {
+              rateFound = parseFloat(m[1]);
+              break;
             }
-          } catch(e) {}
-        }
-
-        if (!foundRate) {
-          try {
-            const res = await fetch('https://open.er-api.com/v6/latest/USD');
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.rates && data.rates.TRY) foundRate = parseFloat(data.rates.TRY);
-            }
-          } catch(e) {}
-        }
-      } else {
-        // TARİH GEÇMİŞ BİR TARİH İSE (Örn: 01.07.2026)
-        // O günden başlayıp geriye doğru resmi iş gününü (TCMB XML) bul
-        for (let dayOffset = 0; dayOffset < 5; dayOffset++) {
-          const checkDate = new Date(selectedDate);
-          checkDate.setDate(checkDate.getDate() - dayOffset);
-
-          const params = formatParams(checkDate);
-          const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${params.yyyymm}/${params.ddmmyyyy}.xml`;
-
-          const proxies = [
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`,
-            `https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`,
-            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(tcmbUrl)}`
-          ];
-
-          for (let pUrl of proxies) {
-            try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 2000);
-              const res = await fetch(pUrl, { signal: controller.signal });
-              clearTimeout(timeoutId);
-
-              if (res.ok) {
-                const xmlText = await res.text();
-                if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
-                  const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
-                  const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
-                  if (usdNode && usdNode.textContent) {
-                    const r = parseFloat(usdNode.textContent.trim().replace(',', '.'));
-                    if (!isNaN(r) && r > 0) { foundRate = r; break; }
-                  }
-                }
-              }
-            } catch(e) {}
           }
-
-          if (foundRate) break;
-        }
-
-        // YEDEK: Frankfurter Tarihsel Kur Servisi (Aynı Seçili Tarih ile)
-        if (!foundRate) {
-          const params = formatParams(selectedDate);
-          try {
-            const res = await fetch(`https://api.frankfurter.app/${params.iso}?from=USD&to=TRY`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data && data.rates && data.rates.TRY) {
-                foundRate = parseFloat(data.rates.TRY);
-              }
-            }
-          } catch(e) {}
+        } catch (e) {
+          // Hafta sonuna denk geldiyse döngü bir önceki güne geçer
         }
       }
 
-      if (foundRate) {
-        kurInput.value = foundRate.toFixed(4).replace('.', ',');
+      // TCMB çekilemezse Frankfurter yedek servisi (Lovable mantığı)
+      if (!rateFound) {
+        try {
+          const r = await fetch(`https://api.frankfurter.app/${dateVal}?from=USD&to=TRY`);
+          const j = await r.json();
+          if (j?.rates?.TRY) {
+            rateFound = j.rates.TRY;
+          }
+        } catch (e) {}
+      }
+
+      if (rateFound) {
+        kurInput.value = rateFound.toFixed(4).replace('.', ',');
       } else {
         kurInput.value = "Kur Çekilemedi";
       }
