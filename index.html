@@ -4,20 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KAPI GİRİŞ HİZMETLERİ - Martaş Limanı</title>
-  
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome İkon Kütüphanesi -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- SheetJS (Excel Dışa Aktarma) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  
+
   <!-- Firebase SDK (Canlı Ortak Veritabanı) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen pb-24 text-slate-800 font-sans">
-  
+
   <!-- Üst Başlık ve Profil Alanı -->
   <header class="bg-gradient-to-r from-blue-700 via-blue-800 to-slate-900 text-white p-4 rounded-b-[2rem] shadow-lg">
     <div class="max-w-md mx-auto flex justify-between items-center">
@@ -43,7 +43,7 @@
         <button onclick="profilModalAc()" class="bg-white/20 hover:bg-white/30 text-white text-xs px-2.5 py-2 rounded-xl backdrop-blur-md transition flex items-center gap-1 font-bold border border-white/20">
           <i class="fa-solid fa-user-gear"></i> Profil
         </button>
-        <button onclick="cikisYap()" title="Çıkış Yap" class="bg-rose-500/80 hover:bg-rose-600 text-white text-xs p-2 rounded-xl backdrop-blur-md transition flex items-center justify-center border border-rose-300/40">
+        <button onclick="cikisYap()" title="Çıkış Yap" class="bg-rose-500/80 hover:bg-rose-600 text-white text-xs p-2 rounded-xl backdrop-blur-md transition flex items-center justify-center border border-rose-300/30">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>
@@ -78,7 +78,7 @@
       </div>
 
       <form id="kapiForm" onsubmit="event.preventDefault(); kayitEkle();" class="space-y-3.5">
-        
+
         <!-- Tarih ve TCMB Kur -->
         <div class="grid grid-cols-2 gap-3">
           <div>
@@ -92,7 +92,7 @@
                 <i class="fa-solid fa-rotate"></i> Yenile
               </button>
             </div>
-            <input type="text" id="kurInput" placeholder="00,0000" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-blue-500" readonly>
+            <input type="text" id="kurInput" placeholder="00,0000" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-blue-500">
           </div>
         </div>
 
@@ -100,7 +100,7 @@
         <div>
           <label class="block text-xs font-bold text-slate-600 mb-1">Fatura Edilecek Firma *</label>
           <div class="relative">
-            <input type="text" id="firmaInput" placeholder="Profil Ayarlarından Firma Giriniz" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-2.5 pr-10 outline-none focus:border-blue-500">
+            <input type="text" id="firmaInput" placeholder="Profil Ayarlarından Firma Giriniz" required class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-2.5 pr-8 outline-none focus:border-blue-500">
             <i id="firmaKilitIcon" class="fa-solid fa-lock absolute right-3 top-3 text-amber-500 text-xs hidden"></i>
           </div>
         </div>
@@ -162,7 +162,7 @@
             <span><i class="fa-solid fa-file-arrow-up text-blue-600"></i> Dekont Evrağı Yükle</span>
             <span class="text-[10px] text-blue-500 font-normal">(Opsiyonel - Görsel / PDF)</span>
           </label>
-          <input type="file" id="dekontInput" accept="image/*,.pdf" onchange="dekontSecildi(this)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-blue-600 file:text-white file:font-bold file:cursor-pointer">
+          <input type="file" id="dekontInput" accept="image/*,.pdf" onchange="dekontSecildi(this)" class="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer">
           <div id="dekontInfo" class="hidden text-[11px] font-semibold text-emerald-700 flex items-center gap-1.5 pt-1">
             <i class="fa-solid fa-circle-check"></i> <span id="dekontDosyaAdi">Dosya seçildi</span>
           </div>
@@ -270,7 +270,7 @@
         <button onclick="profilKaydet()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">
           Ayarları Kaydet ve Devam Et
         </button>
-        <button onclick="cikisYap()" class="w-full bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold py-2.5 rounded-xl text-xs transition border border-rose-200 flex items-center justify-center gap-2">
+        <button onclick="cikisYap()" class="w-full bg-rose-50 text-rose-600 hover:bg-rose-100 font-bold py-2.5 rounded-xl text-xs transition border border-rose-200 flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-right-from-bracket"></i> Oturumu Kapat / Çıkış Yap
         </button>
       </div>
@@ -307,15 +307,13 @@
     let yuklenenDekontAdi = "";
     let aktifKullanici = JSON.parse(localStorage.getItem('fatura_dost_user') || '{"firmaAdi":"","vkn":"","rol":"MUSTERI"}');
     let seciliFiltre = 'HEPSİ';
-    let aktifKurRequestId = 0;
-    let aktifKurController = null;
 
     document.addEventListener('DOMContentLoaded', () => {
       const bugun = new Date().toISOString().split('T')[0];
       document.getElementById('tarihInput').value = bugun;
-      
+
       kullaniciArayuzunuGuncelle();
-      hizmetSatiriEkle();
+      hizmetSatiriEkle(); // İlk varsayılan hizmet satırını ekle
       kuruGuncelle();
 
       if (db) {
@@ -333,6 +331,7 @@
       }
     });
 
+    // DİNAMİK HİZMET SATIRI EKLEME
     function hizmetSatiriEkle() {
       const container = document.getElementById('hizmetlerContainer');
       const rowId = 'hizmet_row_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
@@ -349,7 +348,7 @@
           </select>
         </div>
         <div class="col-span-2">
-          <input type="number" min="1" value="1" oninput="hizmetHesapla()" class="hizmet-adet w-full bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-lg p-2 text-center outline-none focus:border-blue-500">
+          <input type="number" min="1" value="1" oninput="hizmetHesapla()" class="hizmet-adet w-full bg-white border border-slate-200 text-slate-800 text-xs font-bold rounded-lg p-2 text-center outline-none focus:border-blue-500" placeholder="Adet">
         </div>
         <div class="col-span-3">
           <input type="text" readonly class="hizmet-tutar w-full bg-slate-100 text-blue-700 text-xs font-black rounded-lg p-2 text-right outline-none cursor-default" value="$200.00">
@@ -433,9 +432,11 @@
       }
     }
 
+    // KUR HESAPLAMA MANTIĞI
     function getPreviousBusinessDateInfo(dateStr) {
       const [y, m, d] = dateStr.split('-').map(Number);
       let dt = new Date(y, m - 1, d);
+
       dt.setDate(dt.getDate() - 1);
       if (dt.getDay() === 0) dt.setDate(dt.getDate() - 2);
       else if (dt.getDay() === 6) dt.setDate(dt.getDate() - 1);
@@ -459,16 +460,11 @@
       const val = tarihInput.value;
       if (!val) return;
 
-      const requestId = ++aktifKurRequestId;
-      if (aktifKurController) {
-        aktifKurController.abort();
-      }
-      aktifKurController = new AbortController();
-
       kurInput.value = "Yükleniyor...";
 
       const dateInfo = getPreviousBusinessDateInfo(val);
 
+      // TCMB XML
       const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${dateInfo.yearStr}/${dateInfo.dayStr}.xml`;
       const proxies = [
         `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`,
@@ -477,13 +473,13 @@
 
       for (let pUrl of proxies) {
         try {
-          const response = await fetch(pUrl, { signal: aktifKurController.signal });
-          if (requestId !== aktifKurRequestId) return;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 1800);
+          const response = await fetch(pUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
 
           if (response && response.ok) {
             const xmlText = await response.text();
-            if (requestId !== aktifKurRequestId) return;
-
             if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
               const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
               const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
@@ -497,52 +493,35 @@
               }
             }
           }
-        } catch (e) {
-          if (requestId !== aktifKurRequestId) return;
-        }
+        } catch (e) {}
       }
 
+      // FRANKFURTER YEDEK
       try {
-        const frankRes = await fetch(`https://api.frankfurter.app/${dateInfo.isoDate}?from=USD&to=TRY`, {
-          signal: aktifKurController.signal
-        });
-        if (requestId !== aktifKurRequestId) return;
-
+        const frankRes = await fetch(`https://api.frankfurter.app/${dateInfo.isoDate}?from=USD&to=TRY`);
         if (frankRes && frankRes.ok) {
           const fData = await frankRes.json();
-          if (requestId !== aktifKurRequestId) return;
-
           if (fData && fData.rates && fData.rates.TRY) {
             kurInput.value = fData.rates.TRY.toFixed(4).replace('.', ',');
             tlHesapla();
             return;
           }
         }
-      } catch (e) {
-        if (requestId !== aktifKurRequestId) return;
-      }
+      } catch (e) {}
 
+      // OPEN ER YEDEK
       try {
-        const backupRes = await fetch('https://open.er-api.com/v6/latest/USD', {
-          signal: aktifKurController.signal
-        });
-        if (requestId !== aktifKurRequestId) return;
-
+        const backupRes = await fetch('https://open.er-api.com/v6/latest/USD');
         if (backupRes && backupRes.ok) {
           const backupData = await backupRes.json();
-          if (requestId !== aktifKurRequestId) return;
-
           if (backupData && backupData.rates && backupData.rates.TRY) {
             kurInput.value = backupData.rates.TRY.toFixed(4).replace('.', ',');
             tlHesapla();
             return;
           }
         }
-      } catch (e) {
-        if (requestId !== aktifKurRequestId) return;
-      }
+      } catch (e) {}
 
-      if (requestId !== aktifKurRequestId) return;
       kurInput.value = "49,1925";
       tlHesapla();
     }
@@ -568,7 +547,7 @@
       if (input.files && input.files[0]) {
         const file = input.files[0];
         yuklenenDekontAdi = file.name;
-        
+
         const reader = new FileReader();
         reader.onload = function(e) {
           yuklenenDekontData = e.target.result;
@@ -623,6 +602,7 @@
         return;
       }
 
+      // Seçili Hizmetleri Topla
       const hizmetListesi = [];
       document.querySelectorAll('.hizmet-satiri').forEach(row => {
         const select = row.querySelector('.hizmet-select');
@@ -667,6 +647,7 @@
 
       mailGonder(yeniKayit);
 
+      // Formu Temizle
       document.getElementById('aciklama1Input').value = '';
       document.getElementById('aciklama2Input').value = '';
       document.getElementById('dekontInput').value = '';
@@ -723,20 +704,20 @@
 
         let dekontButonu = '';
         if (k.dekontData) {
-          dekontButonu = `<a href="${k.dekontData}" download="${k.dekontAdi || 'dekont'}" class="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-1 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1">
+          dekontButonu = `<a href="${k.dekontData}" download="${k.dekontAdi || 'dekont'}" class="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-1 rounded-lg hover:bg-blue-100 inline-flex items-center gap-1 mt-1 border border-blue-200">
             <i class="fa-solid fa-paperclip"></i> Dekont İndir
           </a>`;
         }
 
-        let hizmetlerHtml = k.hizmetlerOzet ? `<p class="text-[11px] text-blue-900 font-bold bg-blue-50 p-2 rounded-xl mt-1.5 border border-blue-100"><i class="fa-solid fa-list text-blue-600"></i> ${k.hizmetlerOzet}</p>` : '';
+        let hizmetlerHtml = k.hizmetlerOzet ? `<p class="text-[11px] text-blue-900 font-bold bg-blue-50 p-2 rounded-xl mt-1.5 border border-blue-100"><i class="fa-solid fa-list text-blue-600"></i> Hizmetler: ${k.hizmetlerOzet}</p>` : '';
 
         let adminButonlari = '';
         if (aktifKullanici.rol === 'YONETICI') {
           adminButonlari = `
             <div class="flex gap-1.5 pt-2 border-t border-slate-100 mt-2">
               <button onclick="durumDegistir('${k.firebaseKey}', 'Girişe İzin Verildi')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition">İzin Ver</button>
-              <button onclick="durumDegistir('${k.firebaseKey}', 'Faturalandı')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition">Faturalandı</button>
-              <button onclick="kayitSil('${k.firebaseKey}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2 py-1.5 rounded-lg text-[10px] font-bold transition"><i class="fa-solid fa-trash-can"></i></button>
+              <button onclick="durumDegistir('${k.firebaseKey}', 'Faturalandı')" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition">Faturalandır</button>
+              <button onclick="kayitSil('${k.firebaseKey}')" class="bg-rose-100 hover:bg-rose-200 text-rose-700 px-2 py-1.5 rounded-lg text-[10px] font-bold transition"><i class="fa-solid fa-trash"></i></button>
             </div>
           `;
         }
@@ -834,12 +815,12 @@
       if (confirm("Oturumunuz kapatılacak ve sayfadaki firma bilgileriniz temizlenecektir. Onaylıyor musunuz?")) {
         localStorage.removeItem('fatura_dost_user');
         aktifKullanici = { firmaAdi: "", vkn: "", rol: "MUSTERI" };
-        
+
         document.getElementById('firmaInput').value = '';
         document.getElementById('firmaInput').readOnly = false;
         document.getElementById('firmaInput').classList.remove('bg-slate-100', 'cursor-not-allowed');
         document.getElementById('firmaKilitIcon').classList.add('hidden');
-        
+
         profilModalKapat();
         kullaniciArayuzunuGuncelle();
         kayitlariListele();
@@ -869,7 +850,7 @@
       }
       aktifKullanici.firmaAdi = fAdi;
       aktifKullanici.vkn = document.getElementById('modalVkn').value.trim();
-      
+
       localStorage.setItem('fatura_dost_user', JSON.stringify(aktifKullanici));
       profilModalKapat();
       kullaniciArayuzunuGuncelle();
