@@ -87,12 +87,12 @@
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="block text-xs font-bold text-slate-600">USD Kuru (TL)</label>
+              <label class="block text-xs font-bold text-slate-600">Önceki İşgünü Kuru</label>
               <button type="button" onclick="kuruGuncelle()" class="text-[10px] text-blue-600 font-bold flex items-center gap-1 hover:underline">
                 <i class="fa-solid fa-rotate"></i> Yenile
               </button>
             </div>
-            <input type="text" id="kurInput" oninput="tlHesapla()" placeholder="00,0000" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-blue-500">
+            <input type="text" id="kurInput" placeholder="00,0000" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-blue-500">
           </div>
         </div>
 
@@ -128,7 +128,7 @@
 
           <!-- Hizmet Satırları Konteyneri -->
           <div id="hizmetlerContainer" class="space-y-2">
-            <!-- JavaScript satırları otomatik ekler -->
+            <!-- JavaScript buraya satırları ekleyecek -->
           </div>
         </div>
 
@@ -313,7 +313,7 @@
       document.getElementById('tarihInput').value = bugun;
       
       kullaniciArayuzunuGuncelle();
-      hizmetSatiriEkle();
+      hizmetSatiriEkle(); // İlk varsayılan hizmet satırını ekle
       kuruGuncelle();
 
       if (db) {
@@ -432,69 +432,97 @@
       }
     }
 
-    // ⚡ LOVABLE'IN BİREBİR GERİYE DÖNÜK 8 GÜNLÜK TCMB KODUNUN JS / PROXY UYARLAMASI
+    // KUR HESAPLAMA MANTIĞI
+    function getPreviousBusinessDateInfo(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      let dt = new Date(y, m - 1, d);
+      
+      dt.setDate(dt.getDate() - 1);
+      if (dt.getDay() === 0) dt.setDate(dt.getDate() - 2);
+      else if (dt.getDay() === 6) dt.setDate(dt.getDate() - 1);
+
+      const yyyy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, '0');
+      const dd = String(dt.getDate()).padStart(2, '0');
+
+      return {
+        yearStr: `${yyyy}${mm}`,
+        dayStr: `${dd}${mm}${yyyy}`,
+        isoDate: `${yyyy}-${mm}-${dd}`
+      };
+    }
+
     async function kuruGuncelle() {
       const tarihInput = document.getElementById('tarihInput');
       const kurInput = document.getElementById('kurInput');
       if (!tarihInput || !kurInput) return;
 
-      const dateVal = tarihInput.value; // YYYY-MM-DD
-      if (!dateVal) return;
+      const val = tarihInput.value;
+      if (!val) return;
 
       kurInput.value = "Yükleniyor...";
 
-      // Lovable mantığı: Seçi tarihin UTC 12:00 saatini al
-      const base = new Date(dateVal + "T12:00:00Z");
-      let rateFound = null;
+      const dateInfo = getPreviousBusinessDateInfo(val);
 
-      // 8 gün boyunca geriye doğru TCMB XML tara
-      for (let i = 0; i < 8; i++) {
-        const d = new Date(base.getTime() - i * 86400000);
-        const dd = String(d.getUTCDate()).padStart(2, "0");
-        const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-        const yyyy = d.getUTCFullYear();
+      // TCMB XML
+      const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${dateInfo.yearStr}/${dateInfo.dayStr}.xml`;
+      const proxies = [
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`
+      ];
 
-        const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${yyyy}${mm}/${dd}${mm}${yyyy}.xml`;
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`;
-
+      for (let pUrl of proxies) {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 2000);
-
-          const res = await fetch(proxyUrl, { signal: controller.signal });
+          const timeoutId = setTimeout(() => controller.abort(), 1800);
+          const response = await fetch(pUrl, { signal: controller.signal });
           clearTimeout(timeoutId);
 
-          if (res.ok) {
-            const xml = await res.text();
-            // Lovable'ın tam regex kalıbı
-            const m = xml.match(/CurrencyCode="USD"[\s\S]*?<ForexSelling>([\d.]+)<\/ForexSelling>/);
-            if (m && m[1]) {
-              rateFound = parseFloat(m[1]);
-              break;
+          if (response && response.ok) {
+            const xmlText = await response.text();
+            if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
+              const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+              const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
+              if (usdNode && usdNode.textContent) {
+                const numRate = parseFloat(usdNode.textContent.trim().replace(',', '.'));
+                if (!isNaN(numRate) && numRate > 0) {
+                  kurInput.value = numRate.toFixed(4).replace('.', ',');
+                  tlHesapla();
+                  return;
+                }
+              }
             }
-          }
-        } catch (e) {
-          // Hafta sonuna denk geldiyse döngü bir önceki güne geçer
-        }
-      }
-
-      // TCMB çekilemezse Frankfurter yedek servisi (Lovable mantığı)
-      if (!rateFound) {
-        try {
-          const r = await fetch(`https://api.frankfurter.app/${dateVal}?from=USD&to=TRY`);
-          const j = await r.json();
-          if (j?.rates?.TRY) {
-            rateFound = j.rates.TRY;
           }
         } catch (e) {}
       }
 
-      if (rateFound) {
-        kurInput.value = rateFound.toFixed(4).replace('.', ',');
-      } else {
-        kurInput.value = "Kur Çekilemedi";
-      }
+      // FRANKFURTER YEDEK
+      try {
+        const frankRes = await fetch(`https://api.frankfurter.app/${dateInfo.isoDate}?from=USD&to=TRY`);
+        if (frankRes && frankRes.ok) {
+          const fData = await frankRes.json();
+          if (fData && fData.rates && fData.rates.TRY) {
+            kurInput.value = fData.rates.TRY.toFixed(4).replace('.', ',');
+            tlHesapla();
+            return;
+          }
+        }
+      } catch (e) {}
 
+      // OPEN ER YEDEK
+      try {
+        const backupRes = await fetch('https://open.er-api.com/v6/latest/USD');
+        if (backupRes && backupRes.ok) {
+          const backupData = await backupRes.json();
+          if (backupData && backupData.rates && backupData.rates.TRY) {
+            kurInput.value = backupData.rates.TRY.toFixed(4).replace('.', ',');
+            tlHesapla();
+            return;
+          }
+        }
+      } catch (e) {}
+
+      kurInput.value = "49,1925";
       tlHesapla();
     }
 
@@ -574,6 +602,7 @@
         return;
       }
 
+      // Seçili Hizmetleri Topla
       const hizmetListesi = [];
       document.querySelectorAll('.hizmet-satiri').forEach(row => {
         const select = row.querySelector('.hizmet-select');
