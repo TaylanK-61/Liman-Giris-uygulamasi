@@ -87,12 +87,12 @@
           </div>
           <div>
             <div class="flex justify-between items-center mb-1">
-              <label class="block text-xs font-bold text-slate-600">Önceki İşgünü Kuru</label>
+              <label class="block text-xs font-bold text-slate-600">USD Kuru (TL)</label>
               <button type="button" onclick="kuruGuncelle()" class="text-[10px] text-blue-600 font-bold flex items-center gap-1 hover:underline">
                 <i class="fa-solid fa-rotate"></i> Yenile
               </button>
             </div>
-            <input type="text" id="kurInput" placeholder="00,0000" class="w-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-blue-500">
+            <input type="text" id="kurInput" oninput="tlHesapla()" placeholder="00,0000" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl p-2.5 outline-none focus:border-blue-500">
           </div>
         </div>
 
@@ -128,7 +128,7 @@
 
           <!-- Hizmet Satırları Konteyneri -->
           <div id="hizmetlerContainer" class="space-y-2">
-            <!-- JavaScript satırları otomatik ekler -->
+            <!-- JavaScript satırları ekler -->
           </div>
         </div>
 
@@ -432,23 +432,7 @@
       }
     }
 
-    // TARİH BAZLI DİNANİK KUR HESAPLAMA (ÖNCEKİ İŞ GÜNÜ)
-    function getPreviousBusinessDate(dateStr) {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      let dt = new Date(y, m - 1, d);
-      
-      dt.setDate(dt.getDate() - 1);
-      while (dt.getDay() === 0 || dt.getDay() === 6) {
-        dt.setDate(dt.getDate() - 1);
-      }
-
-      const yyyy = dt.getFullYear();
-      const mm = String(dt.getMonth() + 1).padStart(2, '0');
-      const dd = String(dt.getDate()).padStart(2, '0');
-
-      return { yyyy, mm, dd, iso: `${yyyy}-${mm}-${dd}` };
-    }
-
+    // ⚡ DÖVİZ KURU ÇEKME FONKSİYONU (CORS DESTEKLİ SERVİSLER)
     async function kuruGuncelle() {
       const tarihInput = document.getElementById('tarihInput');
       const kurInput = document.getElementById('kurInput');
@@ -459,78 +443,53 @@
 
       kurInput.value = "Yükleniyor...";
 
-      const { yyyy, mm, dd, iso } = getPreviousBusinessDate(val);
-      const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${yyyy}${mm}/${dd}${mm}${yyyy}.xml`;
-
-      let fetchedRate = null;
-
-      // 1. KATMAN: AllOrigins Proxy (TCMB XML)
-      try {
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(tcmbUrl)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.contents && data.contents.includes('CurrencyCode="USD"')) {
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-            const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
-            if (usdNode && usdNode.textContent) {
-              const r = parseFloat(usdNode.textContent.trim().replace(',', '.'));
-              if (!isNaN(r) && r > 0) fetchedRate = r;
-            }
-          }
-        }
-      } catch (e) {}
-
-      // 2. KATMAN: CorsProxy (TCMB XML)
-      if (!fetchedRate) {
-        try {
-          const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`);
-          if (res.ok) {
-            const xmlText = await res.text();
-            if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
-              const parser = new DOMParser();
-              const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-              const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
-              if (usdNode && usdNode.textContent) {
-                const r = parseFloat(usdNode.textContent.trim().replace(',', '.'));
-                if (!isNaN(r) && r > 0) fetchedRate = r;
-              }
-            }
-          }
-        } catch (e) {}
-      }
-
-      // 3. KATMAN: Frankfurter API (Tarihsel İş Günü Kuru - Doğrudan CORS İzinli)
-      if (!fetchedRate) {
-        try {
-          const res = await fetch(`https://api.frankfurter.app/${iso}?from=USD&to=TRY`);
-          if (res.ok) {
-            const fData = await res.json();
-            if (fData && fData.rates && fData.rates.TRY) {
-              fetchedRate = fData.rates.TRY;
-            }
-          }
-        } catch (e) {}
-      }
-
-      // 4. KATMAN: Open ER-API (Güncel USD Servisi)
-      if (!fetchedRate) {
-        try {
+      const apis = [
+        async () => {
           const res = await fetch('https://open.er-api.com/v6/latest/USD');
-          if (res.ok) {
-            const bData = await res.json();
-            if (bData && bData.rates && bData.rates.TRY) {
-              fetchedRate = bData.rates.TRY;
-            }
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          if (data && data.rates && data.rates.TRY) return parseFloat(data.rates.TRY);
+          throw new Error();
+        },
+        async () => {
+          const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          if (data && data.rates && data.rates.TRY) return parseFloat(data.rates.TRY);
+          throw new Error();
+        },
+        async () => {
+          const res = await fetch('https://api.genelpara.com/embed/doviz.json');
+          if (!res.ok) throw new Error();
+          const data = await res.json();
+          if (data && data.USD && data.USD.satis) return parseFloat(data.USD.satis.replace(',', '.'));
+          throw new Error();
+        }
+      ];
+
+      let rateFound = null;
+
+      for (let apiFn of apis) {
+        try {
+          const rate = await Promise.race([
+            apiFn(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1500))
+          ]);
+          if (rate && !isNaN(rate) && rate > 0) {
+            rateFound = rate;
+            break;
           }
         } catch (e) {}
       }
 
-      if (fetchedRate) {
-        kurInput.value = fetchedRate.toFixed(4).replace('.', ',');
+      if (rateFound) {
+        kurInput.value = rateFound.toFixed(4).replace('.', ',');
       } else {
-        kurInput.value = "34,5000";
+        if (kurInput.value === "Yükleniyor..." || !kurInput.value) {
+          kurInput.value = "34,5000";
+        }
       }
+
       tlHesapla();
     }
 
