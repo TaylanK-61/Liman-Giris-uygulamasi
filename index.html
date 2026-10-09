@@ -128,7 +128,7 @@
 
           <!-- Hizmet Satırları Konteyneri -->
           <div id="hizmetlerContainer" class="space-y-2">
-            <!-- JavaScript satırları ekler -->
+            <!-- JavaScript satırları otomatik ekler -->
           </div>
         </div>
 
@@ -432,62 +432,131 @@
       }
     }
 
-    // ⚡ DÖVİZ KURU ÇEKME FONKSİYONU (CORS DESTEKLİ SERVİSLER)
+    // TARİHE ÖZEL SEÇİLİ TCMB ARŞİV KURU ÇEKME FONKSİYONU
     async function kuruGuncelle() {
       const tarihInput = document.getElementById('tarihInput');
       const kurInput = document.getElementById('kurInput');
       if (!tarihInput || !kurInput) return;
 
-      const val = tarihInput.value;
-      if (!val) return;
+      const dateVal = tarihInput.value; // YYYY-MM-DD
+      if (!dateVal) return;
 
       kurInput.value = "Yükleniyor...";
 
-      const apis = [
-        async () => {
-          const res = await fetch('https://open.er-api.com/v6/latest/USD');
-          if (!res.ok) throw new Error();
-          const data = await res.json();
-          if (data && data.rates && data.rates.TRY) return parseFloat(data.rates.TRY);
-          throw new Error();
-        },
-        async () => {
-          const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-          if (!res.ok) throw new Error();
-          const data = await res.json();
-          if (data && data.rates && data.rates.TRY) return parseFloat(data.rates.TRY);
-          throw new Error();
-        },
-        async () => {
-          const res = await fetch('https://api.genelpara.com/embed/doviz.json');
-          if (!res.ok) throw new Error();
-          const data = await res.json();
-          if (data && data.USD && data.USD.satis) return parseFloat(data.USD.satis.replace(',', '.'));
-          throw new Error();
-        }
-      ];
+      const selectedDate = new Date(dateVal + "T00:00:00");
+      const todayStr = new Date().toISOString().split('T')[0];
+      const isToday = (dateVal === todayStr);
 
-      let rateFound = null;
-
-      for (let apiFn of apis) {
-        try {
-          const rate = await Promise.race([
-            apiFn(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1500))
-          ]);
-          if (rate && !isNaN(rate) && rate > 0) {
-            rateFound = rate;
-            break;
-          }
-        } catch (e) {}
+      function formatParams(d) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return {
+          yyyymm: `${yyyy}${mm}`,
+          ddmmyyyy: `${dd}${mm}${yyyy}`,
+          iso: `${yyyy}-${mm}-${dd}`
+        };
       }
 
-      if (rateFound) {
-        kurInput.value = rateFound.toFixed(4).replace('.', ',');
-      } else {
-        if (kurInput.value === "Yükleniyor..." || !kurInput.value) {
-          kurInput.value = "34,5000";
+      let foundRate = null;
+
+      if (isToday) {
+        const tcmbTodayUrl = "https://www.tcmb.gov.tr/kurlar/today.xml";
+        const proxies = [
+          `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbTodayUrl)}`,
+          `https://corsproxy.io/?${encodeURIComponent(tcmbTodayUrl)}`,
+          `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(tcmbTodayUrl)}`
+        ];
+
+        for (let pUrl of proxies) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            const res = await fetch(pUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+              const xmlText = await res.text();
+              if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
+                const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+                const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
+                if (usdNode && usdNode.textContent) {
+                  const r = parseFloat(usdNode.textContent.trim().replace(',', '.'));
+                  if (!isNaN(r) && r > 0) { foundRate = r; break; }
+                }
+              }
+            }
+          } catch(e) {}
         }
+
+        if (!foundRate) {
+          try {
+            const res = await fetch('https://open.er-api.com/v6/latest/USD');
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.rates && data.rates.TRY) foundRate = parseFloat(data.rates.TRY);
+            }
+          } catch(e) {}
+        }
+      } else {
+        // TARİH GEÇMİŞ BİR TARİH İSE (Örn: 01.07.2026)
+        // O günden başlayıp geriye doğru resmi iş gününü (TCMB XML) bul
+        for (let dayOffset = 0; dayOffset < 5; dayOffset++) {
+          const checkDate = new Date(selectedDate);
+          checkDate.setDate(checkDate.getDate() - dayOffset);
+
+          const params = formatParams(checkDate);
+          const tcmbUrl = `https://www.tcmb.gov.tr/kurlar/${params.yyyymm}/${params.ddmmyyyy}.xml`;
+
+          const proxies = [
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(tcmbUrl)}`,
+            `https://corsproxy.io/?${encodeURIComponent(tcmbUrl)}`,
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(tcmbUrl)}`
+          ];
+
+          for (let pUrl of proxies) {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 2000);
+              const res = await fetch(pUrl, { signal: controller.signal });
+              clearTimeout(timeoutId);
+
+              if (res.ok) {
+                const xmlText = await res.text();
+                if (xmlText && xmlText.includes('CurrencyCode="USD"')) {
+                  const xmlDoc = new DOMParser().parseFromString(xmlText, "text/xml");
+                  const usdNode = xmlDoc.querySelector('Currency[CurrencyCode="USD"] ForexSelling');
+                  if (usdNode && usdNode.textContent) {
+                    const r = parseFloat(usdNode.textContent.trim().replace(',', '.'));
+                    if (!isNaN(r) && r > 0) { foundRate = r; break; }
+                  }
+                }
+              }
+            } catch(e) {}
+          }
+
+          if (foundRate) break;
+        }
+
+        // YEDEK: Frankfurter Tarihsel Kur Servisi (Aynı Seçili Tarih ile)
+        if (!foundRate) {
+          const params = formatParams(selectedDate);
+          try {
+            const res = await fetch(`https://api.frankfurter.app/${params.iso}?from=USD&to=TRY`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.rates && data.rates.TRY) {
+                foundRate = parseFloat(data.rates.TRY);
+              }
+            }
+          } catch(e) {}
+        }
+      }
+
+      if (foundRate) {
+        kurInput.value = foundRate.toFixed(4).replace('.', ',');
+      } else {
+        kurInput.value = "Kur Çekilemedi";
       }
 
       tlHesapla();
